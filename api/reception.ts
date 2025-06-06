@@ -4,34 +4,43 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+const getTriageIntent = async (userMessage: string) => {
+  try {
+    const triageResponse = await fetch(`${process.env.VERCEL_URL?.startsWith("http") ? "" : "https://"}${process.env.VERCEL_URL}/api/triage?message=${encodeURIComponent(userMessage)}`);
+    const result = await triageResponse.json();
+    return result; // { intent: "calendar", response: "..." }
+  } catch (err) {
+    console.error("Triage-agent faalde:", err);
+    return { intent: "unknown", response: "Ik ben er niet zeker van wat u bedoelt." };
+  }
+};
+
 export default async function handler(req, res) {
-  const userMessage = req.query.message || "Hallo, ik kom voor een afspraak";
+  const userMessage = req.query.message || "Hallo, ik heb een vraag";
 
   try {
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `
-Je bent een digitale AI-receptioniste. Je begroet bezoekers vriendelijk en professioneel.
-Je vraagt naar hun naam, het doel van hun bezoek, en of ze een afspraak hebben. 
-Als iemand aangeeft dat hij een afspraak heeft, stel dan voor om die persoon op te roepen of verwijs door naar de juiste agent (bijv. CalendarAgent).
-Antwoord altijd in duidelijke, korte zinnen en in het Nederlands.
-          `.trim()
-        },
-        {
-          role: "user",
-          content: userMessage
-        }
-      ]
-    });
+    // Stap 1: gebruik triage om intentie te bepalen
+    const triage = await getTriageIntent(userMessage);
 
-    const antwoord = chatCompletion.choices[0].message.content;
-    res.status(200).json({ message: antwoord });
+    // Stap 2: als intentie duidelijk is → doorverwijzen naar juiste agent
+    let routedResponse = null;
+
+    if (triage.intent === "calendar") {
+      const resp = await fetch(`${process.env.VERCEL_URL?.startsWith("http") ? "" : "https://"}${process.env.VERCEL_URL}/api/calendar?message=${encodeURIComponent(userMessage)}`);
+      routedResponse = await resp.json();
+    } else if (triage.intent === "support") {
+      const resp = await fetch(`${process.env.VERCEL_URL?.startsWith("http") ? "" : "https://"}${process.env.VERCEL_URL}/api/customerService?message=${encodeURIComponent(userMessage)}`);
+      routedResponse = await resp.json();
+    }
+
+    // Stap 3: geef gecombineerd antwoord terug
+    res.status(200).json({
+      intent: triage.intent,
+      receptionResponse: triage.response,
+      routedResponse: routedResponse || null
+    });
   } catch (error) {
-    console.error("Fout bij OpenAI-aanroep:", error);
-    res.status(500).json({ error: "Er ging iets mis met de AI-receptioniste." });
+    console.error("Fout in reception-agent:", error);
+    res.status(500).json({ error: "Reception kon geen antwoord genereren." });
   }
 }
-
