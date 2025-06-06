@@ -20,28 +20,28 @@ Je doel is om één van deze INTENTIES te kiezen:
 - "calendar" → als het om afspraken gaat
 - "support" → als het om klachten of problemen gaat
 - "faq" → als het om algemene vragen gaat
-- "unknown" → als je het niet goed weet
+- "unknown" → als je het niet zeker weet
 
-Antwoord in JSON-formaat zoals hieronder:
+Antwoord in correct JSON-formaat zoals:
 {
-  "intent": "...",
-  "response": "..."
+  "intent": "calendar",
+  "response": "Bedankt! Ik verbind u door met de agenda-afdeling."
 }
-
-Antwoord altijd in correct JSON-formaat.
-`
+Antwoord niets anders dan dit JSON-object.
+          `.trim()
         },
         {
           role: "user",
           content: userMessage
         }
-      ],
-      response_format: "json"
+      ]
     });
 
-    const antwoord = chatCompletion.choices[0].message.content;
+    const antwoord = chatCompletion.choices[0].message.content?.trim();
 
-    res.status(200).json(JSON.parse(antwoord || "{}"));
+    // Probeer de output te parsen als JSON
+    const parsed = JSON.parse(antwoord || "{}");
+    res.status(200).json(parsed);
   } catch (error) {
     console.error("Fout bij OpenAI (triage):", error);
     res.status(500).json({ error: "Triage-agent kon geen beslissing maken." });
