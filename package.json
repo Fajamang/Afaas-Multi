@@ -1,0 +1,7 @@
+{
+  "name": "afaas-multi",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
