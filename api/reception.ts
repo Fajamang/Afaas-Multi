@@ -33,6 +33,9 @@ export default async function handler(req, res) {
     } else if (triage.intent === "support") {
       const resp = await fetch(`${baseUrl}/api/customerService?message=${encodeURIComponent(userMessage)}`);
       routedResponse = await resp.json();
+    } else if (triage.intent === "faq") {
+      const resp = await fetch(`${baseUrl}/api/faq?message=${encodeURIComponent(userMessage)}`);
+      routedResponse = await resp.json();
     }
 
     // Stap 3: gecombineerde response terugsturen
