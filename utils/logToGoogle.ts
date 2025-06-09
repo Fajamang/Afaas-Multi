@@ -6,8 +6,12 @@ export async function logToGoogleSheet(
   intent: string,
   response: string
 ) {
-  const auth = new google.auth.GoogleAuth({
-    credentials: require("../google-credentials.json"),
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON || "");
+const auth = new google.auth.GoogleAuth({
+  credentials,
+  ...
+});
+
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
