@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { logToGoogleSheet } from "../utils/logToGoogle";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
       const resp = await fetch(`${baseUrl}/api/faq?message=${encodeURIComponent(userMessage)}`);
       routedResponse = await resp.json();
     }
+     await logToGoogleSheet("klussersvinden", userMessage, triage.intent, routedResponse?.message || "");
 
     // Stap 3: gecombineerde response terugsturen
     res.status(200).json({
