@@ -7,11 +7,9 @@ export async function logToGoogleSheet(
   response: string
 ) {
   const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON || "");
-const auth = new google.auth.GoogleAuth({
-  credentials,
   
-});
-
+  const auth = new google.auth.GoogleAuth({
+    credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
@@ -36,4 +34,3 @@ const auth = new google.auth.GoogleAuth({
     console.error("Loggen naar Google Sheet mislukt:", err);
   }
 }
-
