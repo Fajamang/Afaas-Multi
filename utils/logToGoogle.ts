@@ -6,22 +6,25 @@ export async function logToGoogleSheet(
   intent: string,
   response: string
 ) {
-  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON || "");
-  
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-
-  const sheets = google.sheets({ version: "v4", auth });
-
-  // 📌 Vul hier jouw Google Sheet ID in:
-  const spreadsheetId = "1kDPD1zOulVsDRrBiWKKwVoEmZLUqc-8wHK9VLorX39A";
-
-  const now = new Date().toISOString();
-  const sheetName = tenant || "algemeen";
-
   try {
+    // 👇 Google Service Account credentials ophalen uit ENV
+    const rawCredentials = process.env.GOOGLE_CREDENTIALS_JSON;
+
+    if (!rawCredentials) throw new Error("GOOGLE_CREDENTIALS_JSON ontbreekt");
+
+    const credentials = JSON.parse(rawCredentials);
+
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const now = new Date().toISOString();
+    const spreadsheetId = "1kDPD1zOulVsDRrBiWKKwVoEmZLUqc-8wHK9VLorX39A";
+    const sheetName = tenant || "algemeen";
+
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${sheetName}!A1`,
@@ -30,7 +33,8 @@ export async function logToGoogleSheet(
         values: [[now, message, intent, response]],
       },
     });
+
   } catch (err) {
-    console.error("Loggen naar Google Sheet mislukt:", err);
+    console.error("❌ Loggen naar Google Sheet mislukt:", err);
   }
 }
