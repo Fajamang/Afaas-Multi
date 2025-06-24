@@ -20,6 +20,10 @@ const getTriageIntent = async (userMessage: string) => {
 
 export default async function handler(req, res) {
   const userMessage = req.query.message || "Hallo, ik heb een vraag";
+  const tenant = req.query.tenant || "algemeen";
+  const userId = req.query.userId || "onbekend";
+  const platform = req.query.platform || "web";
+  const language = req.query.language || "nl";
 
   try {
     // Stap 1: haal intentie op via triage
@@ -38,9 +42,19 @@ export default async function handler(req, res) {
       const resp = await fetch(`${baseUrl}/api/faq?message=${encodeURIComponent(userMessage)}`);
       routedResponse = await resp.json();
     }
-     await logToGoogleSheet("klussersvinden", userMessage, triage.intent, routedResponse?.message || "");
 
-    // Stap 3: gecombineerde response terugsturen
+    // Stap 3: loggen naar juiste tenant-tabblad
+    await logToGoogleSheet(
+      tenant,
+      userMessage,
+      triage.intent,
+      routedResponse?.message || "",
+      userId,
+      platform,
+      language
+    );
+
+    // Stap 4: gecombineerde response terugsturen
     res.status(200).json({
       intent: triage.intent,
       receptionResponse: triage.response,
