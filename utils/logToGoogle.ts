@@ -1,5 +1,5 @@
+console.log("GOOGLE_CREDENTIALS_JSON aanwezig?", !!process.env.GOOGLE_CREDENTIALS_JSON);
 import { google } from "googleapis";
-
 export async function logToGoogleSheet(
   tenant: string,
   message: string,
