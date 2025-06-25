@@ -1,13 +1,14 @@
 // /api/ragQuery.ts
 
-import { queryChunks } from "@/utils/rag/queryChunks";
-import OpenAI from "openai";
+import type { NextApiRequest, NextApiResponse } from "next";
+import { queryChunks } from "../../utils/rag/queryChunks"; // 🔁 relatieve import gebruiken
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Alleen POST toegestaan" });
+    return res.status(405).json({ error: "Alleen POST is toegestaan" });
   }
 
   const { tenant, question } = req.body;
@@ -17,27 +18,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const contextChunks = await queryChunks(tenant, question);
+    const results = await queryChunks(tenant, question);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `Gebruik de volgende context om de vraag van de gebruiker te beantwoorden:\n\n${contextChunks.join("\n\n")}`,
-        },
-        {
-          role: "user",
-          content: question,
-        },
-      ],
+    res.status(200).json({
+      success: true,
+      context: results,
     });
-
-    const answer = response.choices[0].message.content;
-    res.status(200).json({ success: true, answer });
-  } catch (error) {
-    console.error("❌ Query error:", error);
-    res.status(500).json({ error: "RAG faalde", detail: error.message });
+  } catch (err: any) {
+    console.error("❌ Fout in ragQuery:", err.message);
+    res.status(500).json({
+      error: "Query faalde",
+      detail: err.message,
+    });
   }
 }
-
