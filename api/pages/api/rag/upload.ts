@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     await handleUpload(tenant, content);
-    res.status(200).json({ success: true, message: "Upload gelukt!" });
+    res.status(200).json({ success: true, message: "Upload gelukt" });
   } catch (error) {
     console.error("❌ Upload mislukt:", error);
     res.status(500).json({ error: "Upload faalde", detail: error.message });
