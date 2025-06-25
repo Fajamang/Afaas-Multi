@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "googleapis": "^150.0.1",
-    "openai": "^4.25.1"
+    "openai": "^4.25.1",
+    "@supabase/supabase-js": "^2.39.5"
   }
 }
