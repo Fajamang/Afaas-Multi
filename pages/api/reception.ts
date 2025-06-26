@@ -1,7 +1,7 @@
 // pages/api/reception.ts
 
 import { OpenAI } from "openai";
-import { logToGoogleSheet } from "@/utils/logToGoogle"; // 🔁 Absolute import als je alias hebt ingesteld, anders: "../../utils/logToGoogle"
+import { logToGoogleSheet } from "../../utils/logToGoogle";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
