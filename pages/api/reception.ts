@@ -9,11 +9,16 @@ const openai = new OpenAI({
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000"; // Werkt lokaal en op Vercel
+  : "http://localhost:3000"; // Werkt lokaal én op Vercel
 
 const getTriageIntent = async (userMessage: string) => {
   try {
     const res = await fetch(`${baseUrl}/api/triage?message=${encodeURIComponent(userMessage)}`);
+
+    if (!res.ok) {
+      throw new Error(`Triage endpoint gaf status ${res.status}`);
+    }
+
     return await res.json();
   } catch (err) {
     console.error("❌ Triage-agent faalde:", err);
@@ -49,7 +54,11 @@ export default async function handler(req, res) {
     const route = routeMap[triage.intent];
     if (route) {
       const response = await fetch(`${baseUrl}/api/${route}?message=${encodeURIComponent(message as string)}`);
-      routedResponse = await response.json();
+      if (response.ok) {
+        routedResponse = await response.json();
+      } else {
+        console.warn(`⚠️ Endpoint ${route} faalde met status ${response.status}`);
+      }
     }
 
     // Stap 3: Log naar Google Sheets
