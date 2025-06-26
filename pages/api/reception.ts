@@ -1,67 +1,79 @@
+// pages/api/reception.ts
+
 import { OpenAI } from "openai";
-import { logToGoogleSheet } from "../utils/logToGoogle";
+import { logToGoogleSheet } from "@/utils/logToGoogle"; // 🔁 Absolute import als je alias hebt ingesteld, anders: "../../utils/logToGoogle"
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const baseUrl = "https://afaas-multi.vercel.app";
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000"; // Werkt lokaal en op Vercel
 
 const getTriageIntent = async (userMessage: string) => {
   try {
-    const triageResponse = await fetch(`${baseUrl}/api/triage?message=${encodeURIComponent(userMessage)}`);
-    const result = await triageResponse.json();
-    return result; // { intent: "calendar", response: "..." }
+    const res = await fetch(`${baseUrl}/api/triage?message=${encodeURIComponent(userMessage)}`);
+    return await res.json();
   } catch (err) {
-    console.error("Triage-agent faalde:", err);
-    return { intent: "unknown", response: "Ik ben er niet zeker van wat u bedoelt." };
+    console.error("❌ Triage-agent faalde:", err);
+    return {
+      intent: "unknown",
+      response: "Ik ben er niet zeker van wat u bedoelt.",
+    };
   }
 };
 
 export default async function handler(req, res) {
-  const userMessage = req.query.message || "Hallo, ik heb een vraag";
-  const tenant = req.query.tenant || "algemeen";
-  const userId = req.query.userId || "onbekend";
-  const platform = req.query.platform || "web";
-  const language = req.query.language || "nl";
+  const {
+    message = "Hallo, ik heb een vraag",
+    tenant = "algemeen",
+    userId = "onbekend",
+    platform = "web",
+    language = "nl",
+  } = req.query;
 
   try {
-    // Stap 1: haal intentie op via triage
-    const triage = await getTriageIntent(userMessage);
+    // Stap 1: Intentie ophalen
+    const triage = await getTriageIntent(message as string);
 
-    // Stap 2: optioneel doorverwijzen naar juiste agent
+    // Stap 2: Doorverwijzen naar juiste route
     let routedResponse = null;
 
-    if (triage.intent === "calendar") {
-      const resp = await fetch(`${baseUrl}/api/calendar?message=${encodeURIComponent(userMessage)}`);
-      routedResponse = await resp.json();
-    } else if (triage.intent === "support") {
-      const resp = await fetch(`${baseUrl}/api/customerService?message=${encodeURIComponent(userMessage)}`);
-      routedResponse = await resp.json();
-    } else if (triage.intent === "faq") {
-      const resp = await fetch(`${baseUrl}/api/faq?message=${encodeURIComponent(userMessage)}`);
-      routedResponse = await resp.json();
+    const routeMap: Record<string, string> = {
+      calendar: "calendar",
+      support: "customerService",
+      faq: "faq",
+    };
+
+    const route = routeMap[triage.intent];
+    if (route) {
+      const response = await fetch(`${baseUrl}/api/${route}?message=${encodeURIComponent(message as string)}`);
+      routedResponse = await response.json();
     }
 
-    // Stap 3: loggen naar juiste tenant-tabblad
+    // Stap 3: Log naar Google Sheets
     await logToGoogleSheet(
-      tenant,
-      userMessage,
+      tenant as string,
+      message as string,
       triage.intent,
       routedResponse?.message || "",
-      userId,
-      platform,
-      language
+      userId as string,
+      platform as string,
+      language as string
     );
 
-    // Stap 4: gecombineerde response terugsturen
+    // Stap 4: Antwoord sturen
     res.status(200).json({
       intent: triage.intent,
       receptionResponse: triage.response,
-      routedResponse: routedResponse || null
+      routedResponse: routedResponse || null,
     });
-  } catch (error) {
-    console.error("Fout in reception-agent:", error);
-    res.status(500).json({ error: "Reception kon geen antwoord genereren." });
+  } catch (err: any) {
+    console.error("❌ Fout in reception-agent:", err.message);
+    res.status(500).json({
+      error: "Reception kon geen antwoord genereren.",
+      detail: err.message,
+    });
   }
 }
