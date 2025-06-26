@@ -1,7 +1,7 @@
-// pages/api/ragQuery.ts
+// /api/ragQuery.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { queryChunks } from "../../utils/rag/queryChunks"; // 🔁 relatieve import
+import { queryChunks } from "../../utils/rag/queryChunks"; // 🔁 relatieve import gebruiken
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,4 +32,3 @@ export default async function handler(
     });
   }
 }
-
