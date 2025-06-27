@@ -2,11 +2,16 @@
   "name": "afaas-multi",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.5",
     "googleapis": "^150.0.1",
     "openai": "^4.25.1",
-    "@supabase/supabase-js": "^2.39.5"
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   }
 }
