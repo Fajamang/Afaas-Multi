@@ -1,25 +1,32 @@
-// pages/api/reception.ts
-
 import { OpenAI } from "openai";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { logToGoogleSheet } from "../../utils/logToGoogle";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000"; // Werkt lokaal én op Vercel
+// 🔁 Dynamisch baseUrl op basis van omgeving
+const getBaseUrl = (req: NextApiRequest) => {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return `http://${req.headers.host}`;
+};
 
-const getTriageIntent = async (userMessage: string) => {
+const getTriageIntent = async (baseUrl: string, message: string) => {
   try {
-    const res = await fetch(`${baseUrl}/api/triage?message=${encodeURIComponent(userMessage)}`);
+    const res = await fetch(`${baseUrl}/api/triage?message=${encodeURIComponent(message)}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!res.ok) {
       throw new Error(`Triage endpoint gaf status ${res.status}`);
     }
 
-    return await res.json();
+    return await res.json(); // { intent: "...", response: "..." }
   } catch (err) {
     console.error("❌ Triage-agent faalde:", err);
     return {
@@ -29,7 +36,7 @@ const getTriageIntent = async (userMessage: string) => {
   }
 };
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const {
     message = "Hallo, ik heb een vraag",
     tenant = "algemeen",
@@ -38,13 +45,14 @@ export default async function handler(req, res) {
     language = "nl",
   } = req.query;
 
+  const baseUrl = getBaseUrl(req);
+
   try {
-    // Stap 1: Intentie ophalen
-    const triage = await getTriageIntent(message as string);
+    // 1️⃣ Intentie bepalen via triage
+    const triage = await getTriageIntent(baseUrl, message as string);
 
-    // Stap 2: Doorverwijzen naar juiste route
+    // 2️⃣ Doorverwijzen naar specifieke agent op basis van intent
     let routedResponse = null;
-
     const routeMap: Record<string, string> = {
       calendar: "calendar",
       support: "customerService",
@@ -53,15 +61,11 @@ export default async function handler(req, res) {
 
     const route = routeMap[triage.intent];
     if (route) {
-      const response = await fetch(`${baseUrl}/api/${route}?message=${encodeURIComponent(message as string)}`);
-      if (response.ok) {
-        routedResponse = await response.json();
-      } else {
-        console.warn(`⚠️ Endpoint ${route} faalde met status ${response.status}`);
-      }
+      const resp = await fetch(`${baseUrl}/api/${route}?message=${encodeURIComponent(message as string)}`);
+      routedResponse = await resp.json();
     }
 
-    // Stap 3: Log naar Google Sheets
+    // 3️⃣ Logging naar Google Sheets
     await logToGoogleSheet(
       tenant as string,
       message as string,
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
       language as string
     );
 
-    // Stap 4: Antwoord sturen
+    // 4️⃣ Response terugsturen
     res.status(200).json({
       intent: triage.intent,
       receptionResponse: triage.response,
