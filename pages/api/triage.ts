@@ -8,7 +8,10 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const userMessage = req.query.message as string || "Hallo, ik heb een vraag";
+  const userMessage =
+    typeof req.query.message === "string"
+      ? req.query.message
+      : "Hallo, ik heb een vraag";
 
   try {
     const chatCompletion = await openai.chat.completions.create({
@@ -42,9 +45,13 @@ Antwoord niets anders dan dit JSON-object.
 
     const antwoord = chatCompletion.choices[0].message.content?.trim();
 
+    if (!antwoord) {
+      return res.status(500).json({ error: "Geen respons van OpenAI ontvangen." });
+    }
+
     let parsed;
     try {
-      parsed = JSON.parse(antwoord || "{}");
+      parsed = JSON.parse(antwoord);
     } catch (parseErr) {
       console.error("Fout bij JSON-parsing (triage):", parseErr);
       return res.status(500).json({ error: "Triagerespons was geen geldige JSON." });
