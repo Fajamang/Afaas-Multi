@@ -4,19 +4,24 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "telemetry:disable": "next telemetry disable",
+    "telemetry:status": "next telemetry status"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.5",
     "googleapis": "^150.0.1",
     "next": "^14.2.3",
     "openai": "^4.25.1",
-    "react": "^18.2.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/node": "^24.0.14",
-    "@types/react": "^19.1.8",
-    "react-dom": "^18.2.0",
-    "typescript": "^5.8.3"
-  }
+    "typescript": "^5.5.1",
+    "@types/react": "^18.2.69",
+    "@types/node": "^20.11.25",
+    "@types/react-dom": "^18.2.19"
+  },
+  "private": true
 }
